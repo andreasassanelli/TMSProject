@@ -13,14 +13,15 @@ import nltk         #NLTK - Commonly used NLP library
 
 #import components
 from nltk.corpus.reader.plaintext import PlaintextCorpusReader
+import os
 
 #NLTK package installer
 #nltk.download()
 
 #Define constants (file locations, etc)
-datasetRootDir = "C:\\usenet\\bydate\\"
-testSetRootDir = datasetRootDir + "test\\"
-trainSetRootDir = datasetRootDir + "train\\"
+datasetRootDir = "dataset/20news-bydate/"
+testSetRootDir = datasetRootDir + "20news-bydate-test/"
+trainSetRootDir = datasetRootDir + "20news-bydate-train/"
 
 def importDataSet(datasetLocation):
     #TODO: Group selection? Treat each group as a separate corpus?
@@ -28,7 +29,9 @@ def importDataSet(datasetLocation):
 
     #Read the specified corpus using NLTK's PlaintextCorpusReader for multiple files in directory
     corpusDir = datasetLocation + groupName                     #Append the group name to the directory path
-    corpus = PlaintextCorpusReader(corpusDir, ".*\.txt",encoding='latin1')
+    fileList = os.listdir(corpusDir)
+#    corpus = PlaintextCorpusReader(corpusDir, ".*\.txt",encoding='latin1')
+    corpus = PlaintextCorpusReader(corpusDir, fileList, encoding='latin1')
 
     #Accessing the name of the files of the corpus
     files=corpus.fileids()
