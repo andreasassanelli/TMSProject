@@ -6,52 +6,49 @@
 #
 #Chosen excercise dataset: http://qwone.com/~jason/20Newsgroups/
 
-# foobar
-
 #Load libraries
+import os
+import pandas as pd
 import nltk         #NLTK - Commonly used NLP library
 
 #import components
 from nltk.corpus.reader.plaintext import PlaintextCorpusReader
-import os
 
 #NLTK package installer
 #nltk.download()
 
 #Define constants (file locations, etc)
-datasetRootDir = "dataset/20news-bydate/"
+datasetRootDir = "..\\datasets\\20news-bydate\\"
 testSetRootDir = datasetRootDir + "20news-bydate-test/"
-trainSetRootDir = datasetRootDir + "20news-bydate-train/"
+trainSetRootDir = datasetRootDir + "20news-bydate-train\\"
 
 def importDataSet(datasetLocation):
-    #TODO: Group selection? Treat each group as a separate corpus?
-    groupName = "alt.atheism"
 
-    #Read the specified corpus using NLTK's PlaintextCorpusReader for multiple files in directory
-    corpusDir = datasetLocation + groupName                     #Append the group name to the directory path
-    fileList = os.listdir(corpusDir)
-#    corpus = PlaintextCorpusReader(corpusDir, ".*\.txt",encoding='latin1')
-    corpus = PlaintextCorpusReader(corpusDir, fileList, encoding='latin1')
+    for groupName in os.listdir(datasetLocation):
 
-    #Accessing the name of the files of the corpus
-    files=corpus.fileids()
+        #Read the specified corpus using NLTK's PlaintextCorpusReader for multiple files in directory
+        corpusDir = datasetLocation + groupName                     #Append the group name to the directory path
+        fileList = os.listdir(corpusDir)
+        corpus = PlaintextCorpusReader(corpusDir, fileList, encoding='latin1')
 
-    for f in files:
-        print (f)
+        #Accessing the name of the files of the corpus
+        files=corpus.fileids()
 
-    #Hang on...
-    input()
-    
-    #Accessing all the text of the corpus
-    all_text=corpus.raw()
+        print("%s: %s" % (groupName,len(files)))
 
-    print (all_text)
+        #Hang on...
+        input()
 
-    #Hang on...
-    input()
+        #Accessing all the text of the corpus
+        all_text=corpus.raw()
 
-    #Accessing all the text for one of the files
-    #news1_text=corpus.raw('news1.txtprint news1_text
+        #print(all_text)
+
+        #Hang on...
+        #input()
+
+        #Accessing all the text for one of the files
+        #news1_text=corpus.raw('news1.txtprint news1_text
 
 #ENTRY POINT
 def main():

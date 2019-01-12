@@ -262,3 +262,6 @@ __pycache__/
 
 # Dataset content
 datasets/
+
+# Venv
+venv/
