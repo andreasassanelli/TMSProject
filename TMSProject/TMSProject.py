@@ -1,7 +1,7 @@
 #Text Mining and Search - Final Project
 #
 #Students:
-# Nicoli,     Paolo       123123123
+# Nicoli,     Paolo       833311
 # Sassanelli, Andrea      123123123
 #
 #Chosen excercise dataset: http://qwone.com/~jason/20Newsgroups/
