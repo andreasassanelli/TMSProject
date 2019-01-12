@@ -6,6 +6,8 @@
 #
 #Chosen excercise dataset: http://qwone.com/~jason/20Newsgroups/
 
+# foobar
+
 #Load libraries
 import nltk         #NLTK - Commonly used NLP library
 
