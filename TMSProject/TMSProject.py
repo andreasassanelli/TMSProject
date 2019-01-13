@@ -71,6 +71,8 @@ def strip_newsgroup_footer(text):
 
 # Define constants (file locations, etc)
 DEBUG = False
+random.seed(1)
+
 datasetRootDir = "../datasets/20news-bydate/"
 testSetRootDir = datasetRootDir + "20news-bydate-test/"
 trainSetRootDir = datasetRootDir + "20news-bydate-train/"
@@ -80,9 +82,6 @@ pstemmer = PorterStemmer()
 
 nltk.download("stopwords")
 stop_words = set(stopwords.words('english'))
-
-count_vect = CountVectorizer(min_df=10, max_df=0.80)
-tfidf_trans = TfidfTransformer()
 
 def preprocDocument(document):
     """
@@ -167,23 +166,26 @@ def main():
 
     # dataset loading
     t0 = time()
-    raw_train = importDataSet(trainSetRootDir, func=preprocDocument, verbose=True)
+    raw_train = importDataSet(trainSetRootDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
     print("training dataset loaded in %d seconds" % (time() -t0) )
     random.shuffle(raw_train)
 
     t1 = time()
-    raw_test = importDataSet(testSetRootDir, func=preprocDocument, verbose=True)
+    raw_test = importDataSet(testSetRootDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
     print("test dataset loaded in %d seconds" % (time() -t1) )
     random.shuffle(raw_test)
 
     # collate corpus
     train_corpus = [ ' '.join(x[2]) for x in raw_train]
-    train_labels = [x[1] for x in raw_train]
-
     test_corpus = [ ' '.join(x[2]) for x in raw_test]
+
+    train_labels = [x[1] for x in raw_train]
     test_labels = [x[1] for x in raw_test]
 
     label_names = list(set(test_labels))
+
+    count_vect = CountVectorizer(min_df=min_freq, max_df=max_freq)
+    tfidf_trans = TfidfTransformer()
 
     # build Document-Term matrix with TF-IDF weights
     X_train = count_vect.fit_transform(train_corpus)
@@ -201,9 +203,18 @@ def main():
     print(metrics.classification_report(test_labels, y_predict, target_names = label_names))
     cmat = metrics.confusion_matrix(test_labels, y_predict)
 
+    print(cmat)
+
     plt.imshow(cmat)
+    plt.yticks(range(len(label_names)), label_names)
     plt.show()
 
 
 if __name__ == '__main__':
+    verbose = True
+    stripflg = (True, True, True)
+
+    min_freq = 0.05
+    max_freq = 0.80
+
     main()
