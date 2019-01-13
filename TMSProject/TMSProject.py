@@ -11,12 +11,12 @@ import os
 import pandas as pd
 import nltk
 import re
+from time import time
 
 #import components
-from nltk.corpus.reader.plaintext import PlaintextCorpusReader
-
-#NLTK package installer
-#nltk.download()
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
 
 # 20newsgroup preprocessing functions
 # source: scikit-learn/sklearn/datasets/twenty_newsgroups.py
@@ -66,11 +66,39 @@ def strip_newsgroup_footer(text):
 
 
 # Define constants (file locations, etc)
+DEBUG = False
 datasetRootDir = "../datasets/20news-bydate/"
 testSetRootDir = datasetRootDir + "20news-bydate-test/"
 trainSetRootDir = datasetRootDir + "20news-bydate-train/"
 
-def importDataSet(datasetLocation, strips = (True,True,True), func = lambda x: x , verbose = False):
+nltk.download("punkt")
+pstemmer = PorterStemmer()
+
+nltk.download("stopwords")
+stop_words = set(stopwords.words('english'))
+
+def preprocDocument(document):
+    """
+    Pre-process document by applying tokenization, stopwords removal and stemming
+    """
+    # tokenize
+    termlist = word_tokenize(document)
+
+    # drop non alphabetic elements and stopwords, convert to lowercase
+    termlist = [elem.lower() for elem in termlist if elem.isalpha() and elem not in stop_words]
+
+    # stemming
+    termlist = [pstemmer.stem(w) for w in termlist]
+
+    return termlist
+
+def importDataSet(datasetLocation, strip_flags = (True, True, True), func = lambda x: x , verbose = False):
+    """
+    Load dataset from specified location assuming each class has its own subfolder containing document files.
+    Removes header/quote/footer from each document according to boolean flags in <strip_flags> tuple.
+    Applies optional pre-processing function <func> to each document individually.
+    Returns list of [docID, class, data], one for each document in dataset
+    """
 
     if verbose: print(datasetLocation)
 
@@ -95,16 +123,34 @@ def importDataSet(datasetLocation, strips = (True,True,True), func = lambda x: x
             with open( corpusDir + '/' + docID) as fin:
                 data = fin.read()
 
+            if DEBUG:
+                print("vanilla")
+                print(data)
+                print("-----------------------------------------------------------------------------------")
+
             # apply pre-processing functions according to "strips" flags
-            if strips[0]: data = strip_newsgroup_header(data)
-            if strips[1]: data = strip_newsgroup_quoting(data)
-            if strips[2]: data = strip_newsgroup_footer(data)
+            if strip_flags[0]: data = strip_newsgroup_header(data)
+            if strip_flags[1]: data = strip_newsgroup_quoting(data)
+            if strip_flags[2]: data = strip_newsgroup_footer(data)
+
+            if DEBUG:
+                print("strip")
+                print(data)
+                print("---------------------------------------------------------------------------------")
 
             # apply additional processing if needed
             data = func(data)
 
+            if DEBUG:
+                print("end")
+                print(data)
+                print("---------------------------------------------------------------------------------")
+
             # append resulting tuple to output dataset
             dataset.append([docID, groupName, data])
+
+            if DEBUG: break
+        if DEBUG: break
 
     return dataset
 
@@ -112,12 +158,16 @@ def importDataSet(datasetLocation, strips = (True,True,True), func = lambda x: x
 def main():
     print("Entry Point")
 
-    raw_train = importDataSet(trainSetRootDir)
-    raw_test = importDataSet(testSetRootDir)
+    t0 = time()
+    raw_train = importDataSet(trainSetRootDir, func=preprocDocument, verbose=True)
+    print("training dataset loaded in %d seconds" % (time() -t0) )
+    t1 = time()
+    raw_test = importDataSet(testSetRootDir, func=preprocDocument, verbose=True)
+    print("test dataset loaded in %d seconds" % (time() -t1) )
 
-    #TODO: tokenization
-    #TODO: stopword removal
-    #TODO: stemming/lemmatization
+    #DONE: tokenization
+    #DONE: stopword removal
+    #TODO: lemmatization ?
 
     #TODO: representation (BoW, VSpace, ...)
 
