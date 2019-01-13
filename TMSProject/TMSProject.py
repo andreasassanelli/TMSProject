@@ -8,15 +8,19 @@
 
 #Load libraries
 import os
-import pandas as pd
 import nltk
 import re
 from time import time
+import random
 
 #import components
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn import metrics
+from matplotlib import pyplot as plt
 
 # 20newsgroup preprocessing functions
 # source: scikit-learn/sklearn/datasets/twenty_newsgroups.py
@@ -76,6 +80,9 @@ pstemmer = PorterStemmer()
 
 nltk.download("stopwords")
 stop_words = set(stopwords.words('english'))
+
+count_vect = CountVectorizer(min_df=10, max_df=0.80)
+tfidf_trans = TfidfTransformer()
 
 def preprocDocument(document):
     """
@@ -158,21 +165,45 @@ def importDataSet(datasetLocation, strip_flags = (True, True, True), func = lamb
 def main():
     print("Entry Point")
 
+    # dataset loading
     t0 = time()
     raw_train = importDataSet(trainSetRootDir, func=preprocDocument, verbose=True)
     print("training dataset loaded in %d seconds" % (time() -t0) )
+    random.shuffle(raw_train)
+
     t1 = time()
     raw_test = importDataSet(testSetRootDir, func=preprocDocument, verbose=True)
     print("test dataset loaded in %d seconds" % (time() -t1) )
+    random.shuffle(raw_test)
 
-    #DONE: tokenization
-    #DONE: stopword removal
-    #TODO: lemmatization ?
+    # collate corpus
+    train_corpus = [ ' '.join(x[2]) for x in raw_train]
+    train_labels = [x[1] for x in raw_train]
 
-    #TODO: representation (BoW, VSpace, ...)
+    test_corpus = [ ' '.join(x[2]) for x in raw_test]
+    test_labels = [x[1] for x in raw_test]
 
-    #TODO: classification training
-    #TODO: classification evaluation
+    label_names = list(set(test_labels))
+
+    # build Document-Term matrix with TF-IDF weights
+    X_train = count_vect.fit_transform(train_corpus)
+    X_train_tfidf = tfidf_trans.fit_transform(X_train)
+
+    # Classification
+    clf = MultinomialNB().fit(X_train_tfidf, train_labels)
+
+    X_test = count_vect.transform(test_corpus)
+    X_test_tfidf = tfidf_trans.transform(X_test)
+
+    y_predict = clf.predict(X_test_tfidf)
+
+    # Evaluation
+    print(metrics.classification_report(test_labels, y_predict, target_names = label_names))
+    cmat = metrics.confusion_matrix(test_labels, y_predict)
+
+    plt.imshow(cmat)
+    plt.show()
+
 
 if __name__ == '__main__':
     main()
