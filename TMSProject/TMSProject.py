@@ -115,5 +115,14 @@ def main():
     raw_train = importDataSet(trainSetRootDir)
     raw_test = importDataSet(testSetRootDir)
 
+    #TODO: tokenization
+    #TODO: stopword removal
+    #TODO: stemming/lemmatization
+
+    #TODO: representation (BoW, VSpace, ...)
+
+    #TODO: classification training
+    #TODO: classification evaluation
+
 if __name__ == '__main__':
     main()
