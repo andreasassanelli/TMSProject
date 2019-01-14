@@ -12,6 +12,7 @@ import nltk
 import re
 from time import time
 import random
+from nltk.classify.scikitlearn import SklearnClassifier
 
 #import components
 from nltk.corpus import stopwords
@@ -21,6 +22,8 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn import metrics
 from matplotlib import pyplot as plt
+# Additional
+from sklearn.naive_bayes import BernoulliNB
 
 # 20newsgroup preprocessing functions
 # source: scikit-learn/sklearn/datasets/twenty_newsgroups.py
@@ -73,7 +76,7 @@ def strip_newsgroup_footer(text):
 DEBUG = False
 random.seed(1)
 
-datasetRootDir = "../datasets/20news-bydate/"
+datasetRootDir = "c:/datasets/20news-bydate/"
 testSetRootDir = datasetRootDir + "20news-bydate-test/"
 trainSetRootDir = datasetRootDir + "20news-bydate-train/"
 
@@ -205,10 +208,14 @@ def main():
 
     print(cmat)
 
-    plt.imshow(cmat)
-    plt.yticks(range(len(label_names)), label_names)
-    plt.show()
+    #plt.imshow(cmat)
+    #plt.yticks(range(len(label_names)), label_names)
+    #plt.show()
 
+    # Try More
+    BNB_classifier = SklearnClassifier(BernoulliNB())
+    BNB_classifier.train(training_set)
+    print("BernoulliNB accuracy percent:",nltk.classify.accuracy(BNB_classifier, testing_set))
 
 if __name__ == '__main__':
     verbose = True
