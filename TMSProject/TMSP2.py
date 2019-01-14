@@ -177,7 +177,7 @@ def preprocessDataSet(datasetRoot, SourceDIR, DestDIR, strip_flags = (True, True
                 print("---------------------------------------------------------------------------------")
             
             # apply additional processing if needed
-            #data = func(data)
+            data = func(data)
 
             if DEBUG:
                 print("end")
