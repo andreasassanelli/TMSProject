@@ -30,6 +30,8 @@ from nltk.corpus.reader.util import StreamBackedCorpusView
 from sklearn.linear_model import LogisticRegression,SGDClassifier
 from sklearn.svm import SVC, LinearSVC, NuSVC
 from nltk.corpus import words
+from nltk.stem.wordnet import WordNetLemmatizer
+from nltk.stem.porter import PorterStemmer
 
 class IgnoreHeadingCorpusView(StreamBackedCorpusView):
     def __init__(self, *args, **kwargs):
@@ -108,6 +110,9 @@ trainSetRootDir = datasetRootDir + "20news-bydate-train"
 nltk.download("words")
 
 nltk.download("punkt")
+
+nltk.download('wordnet')
+
 pstemmer = PorterStemmer()
 
 nltk.download("stopwords")
@@ -122,6 +127,16 @@ def preprocDocument(document):
 
     # drop non alphabetic elements and stopwords, convert to lowercase
     termlist = [elem.lower() for elem in termlist if elem.isalpha() and elem not in stop_words]
+
+    lem = WordNetLemmatizer()
+    termlist = map(lem.lemmatize, termlist)
+
+    # only english
+    #termlist = [word.lower() for word in words.words() if word in termlist]
+
+    
+#
+#stem = PorterStemmer()
 
     # stemming
     termlist = [pstemmer.stem(w) for w in termlist]
@@ -184,9 +199,11 @@ def preprocessDataSet(datasetRoot, SourceDIR, DestDIR, strip_flags = (True, True
                 print(data)
                 print("---------------------------------------------------------------------------------")
 
+            #train_corpus = [ ' '.join(x[2]) for x in raw_train]
+            #test_corpus = [ ' '.join(x[2]) for x in raw_test]
 
             with open( datasetRoot + DestDIR + groupName + '/' + docID, "w") as fout:
-                fout.write(data)
+                fout.write(' '.join(data))
                 fout.close()
             # append resulting tuple to output dataset
             #dataset.append([docID, groupName, data])
@@ -210,8 +227,8 @@ def find_features(document, word_features):
 def main():
     print("Entry Point")
     
-  #  preprocessDataSet(datasetRootDir, trainSetDir, trainSetFixedDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
-   # preprocessDataSet(datasetRootDir, testSetDir, testSetFixedDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
+    preprocessDataSet(datasetRootDir, trainSetDir, trainSetFixedDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
+    preprocessDataSet(datasetRootDir, testSetDir, testSetFixedDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
     
     # Load Corpora  IgnoreHeadingCorpusReader
     usenet_train = CategorizedPlaintextCorpusReader(trainSetRootDir + "-pre/", r'.*', cat_pattern=r'((\w+[.]?)*)/*', encoding="ISO-8859-1")
@@ -221,14 +238,14 @@ def main():
     #print(usenet_train.categories())
     #print(usenet_train.fileids())
    
-    #train_docs = [(list(usenet_train.words(fileid)), category)
-    #             for category in usenet_train.categories()
-    #             for fileid in usenet_train.fileids(category)]
-    
-
-    train_docs = [([w for w in usenet_train.words(fileid) if w not in stop_words], category)
+    train_docs = [(list(usenet_train.words(fileid)), category)
                  for category in usenet_train.categories()
                  for fileid in usenet_train.fileids(category)]
+    
+
+    #train_docs = [([w for w in usenet_train.words(fileid) if w not in stop_words], category)
+    #             for category in usenet_train.categories()
+    #             for fileid in usenet_train.fileids(category)]
     
     #print(train_docs)
 
@@ -243,7 +260,7 @@ def main():
 
     all_words = []
     for w in usenet_train.words():
-        all_words.append(w.lower())
+        all_words.append(w)
 
     all_words = nltk.FreqDist(all_words)
     #print(all_words.most_common(15))
@@ -251,13 +268,14 @@ def main():
 
     all_words_test = []
     for w in usenet_test.words():
-        all_words_test.append(w.lower())
+        all_words_test.append(w)
 
     all_words = nltk.FreqDist(all_words)
     all_words_test = nltk.FreqDist(all_words_test)
     
-    word_features = list(all_words.keys())[:5000]
-    word_features_test = list(all_words_test.keys())[:5000]
+    print(len(all_words.keys()))
+    word_features = list(all_words.keys())[:2000]
+    word_features_test = list(all_words_test.keys())[:2000]
     #print((find_features(usenet_train.words('alt.atheism/51130'),word_features)))
     
     training_set = [(find_features(rev, word_features), category) for (rev, category) in train_docs]
@@ -271,7 +289,7 @@ def main():
     # Try More
     MNB_classifier = SklearnClassifier(MultinomialNB())
     MNB_classifier.train(training_set)
-    print("MultinomialNB accuracy percent: ",nltk.classify.accuracy(MNB_classifier, testing_set)*100)
+    print("MultinomialNB accuracy rcent: ",nltk.classify.accuracy(MNB_classifier, testing_set)*100)
 
     BNB_classifier = SklearnClassifier(BernoulliNB())
     BNB_classifier.train(training_set)
