@@ -24,6 +24,8 @@ from sklearn import metrics
 from matplotlib import pyplot as plt
 # Additional
 from sklearn.naive_bayes import BernoulliNB
+from sklearn.ensemble import (RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier)
+from sklearn.gaussian_process import GaussianProcessClassifier
 
 # 20newsgroup preprocessing functions
 # source: scikit-learn/sklearn/datasets/twenty_newsgroups.py
@@ -194,7 +196,8 @@ def main():
     X_train = count_vect.fit_transform(train_corpus)
     X_train_tfidf = tfidf_trans.fit_transform(X_train)
 
-    # Classification
+    # Classification MultinomialNB
+    print("Classification using MultinomialNB")
     clf = MultinomialNB().fit(X_train_tfidf, train_labels)
 
     X_test = count_vect.transform(test_corpus)
@@ -206,16 +209,96 @@ def main():
     print(metrics.classification_report(test_labels, y_predict, target_names = label_names))
     cmat = metrics.confusion_matrix(test_labels, y_predict)
 
-    print(cmat)
+    #print(cmat)
 
     #plt.imshow(cmat)
     #plt.yticks(range(len(label_names)), label_names)
     #plt.show()
 
     # Try More
-    #BN##B_classifier = SklearnClassifier(BernoulliNB())
-    #BN#B_classifier.train(training_set)
-    #print("BernoulliNB accuracy percent:",nltk.classify.accuracy(BNB_classifier, testing_set))
+    # Classification MultinomialNB
+    print("Classification using BernoulliNB")
+    clf2 = BernoulliNB().fit(X_train_tfidf, train_labels)
+
+    X_test = count_vect.transform(test_corpus)
+    X_test_tfidf = tfidf_trans.transform(X_test)
+
+    y_predict = clf2.predict(X_test_tfidf)
+
+    # Evaluation
+    print(metrics.classification_report(test_labels, y_predict, target_names = label_names))
+    cmat = metrics.confusion_matrix(test_labels, y_predict)
+
+    #print(cmat)
+
+    #plt.imshow(cmat)
+    #plt.yticks(range(len(label_names)), label_names)
+    #plt.show()
+
+    # Classification RandomForestClassifier
+    clf3 = RandomForestClassifier(n_estimators=10).fit(X_train_tfidf, train_labels)
+    clf4 = RandomForestClassifier(n_estimators=100).fit(X_train_tfidf, train_labels)
+    clf5 = RandomForestClassifier(n_estimators=500).fit(X_train_tfidf, train_labels)
+    
+    y_predict10 = clf3.predict(X_test_tfidf)
+    y_predict100 = clf4.predict(X_test_tfidf)
+    y_predict500 = clf5.predict(X_test_tfidf)
+
+    # 
+    print("Classification using RFC 10 estimators")
+    print(metrics.classification_report(test_labels, y_predict10, target_names = label_names))
+    print("Classification using RFC 100 estimators")
+    print(metrics.classification_report(test_labels, y_predict100, target_names = label_names))
+    print("Classification using RFC 500 estimators")
+    print(metrics.classification_report(test_labels, y_predict500, target_names = label_names))
+    cmat = metrics.confusion_matrix(test_labels, y_predict)
+
+    #print(cmat)
+
+    #plt.imshow(cmat)
+    #plt.yticks(range(len(label_names)), label_names)
+    #plt.show()
+    
+    # Classification GradientBoostingClassifier
+    print("Classification using GradientBoostingClassifier")
+    clf6 = GradientBoostingClassifier().fit(X_train_tfidf, train_labels)
+
+    X_test = count_vect.transform(test_corpus)
+    X_test_tfidf = tfidf_trans.transform(X_test)
+
+    y_predict = clf6.predict(X_test_tfidf)
+
+    # Evaluation
+    print(metrics.classification_report(test_labels, y_predict, target_names = label_names))
+    cmat = metrics.confusion_matrix(test_labels, y_predict)
+
+    #print(cmat)
+
+    #plt.imshow(cmat)
+    #plt.yticks(range(len(label_names)), label_names)
+    #plt.show()
+
+    
+     # Classification AdaBoostClassifier
+    print("Classification using AdaBoostClassifier")
+    clf7 = AdaBoostClassifier().fit(X_train_tfidf, train_labels)
+
+    X_test = count_vect.transform(test_corpus)
+    X_test_tfidf = tfidf_trans.transform(X_test)
+
+    y_predict = clf7.predict(X_test_tfidf)
+
+    # Evaluation
+    print(metrics.classification_report(test_labels, y_predict, target_names = label_names))
+    cmat = metrics.confusion_matrix(test_labels, y_predict)
+
+    #print(cmat)
+
+    #plt.imshow(cmat)
+    #plt.yticks(range(len(label_names)), label_names)
+    #plt.show()
+    
+ 
 
 if __name__ == '__main__':
     verbose = True

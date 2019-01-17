@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>f50aaa1d-bafc-4c53-8946-57f2455ac8ac</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>TMSP2.py</StartupFile>
+    <StartupFile>TMSProject.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
