@@ -213,15 +213,15 @@ def main():
     #plt.show()
 
     # Try More
-    BNB_classifier = SklearnClassifier(BernoulliNB())
-    BNB_classifier.train(training_set)
-    print("BernoulliNB accuracy percent:",nltk.classify.accuracy(BNB_classifier, testing_set))
+    #BN##B_classifier = SklearnClassifier(BernoulliNB())
+    #BN#B_classifier.train(training_set)
+    #print("BernoulliNB accuracy percent:",nltk.classify.accuracy(BNB_classifier, testing_set))
 
 if __name__ == '__main__':
     verbose = True
     stripflg = (True, True, True)
 
-    min_freq = 0.05
+    min_freq = 10
     max_freq = 0.80
 
     main()

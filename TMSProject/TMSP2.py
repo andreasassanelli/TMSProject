@@ -12,6 +12,7 @@ import nltk
 import re
 from time import time
 import random
+import collections
 import string
 from nltk.classify.scikitlearn import SklearnClassifier
 
@@ -32,6 +33,7 @@ from sklearn.svm import SVC, LinearSVC, NuSVC
 from nltk.corpus import words
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.stem.porter import PorterStemmer
+from nltk.metrics import (precision, recall)
 
 class IgnoreHeadingCorpusView(StreamBackedCorpusView):
     def __init__(self, *args, **kwargs):
@@ -129,7 +131,7 @@ def preprocDocument(document):
     termlist = [elem.lower() for elem in termlist if elem.isalpha() and elem not in stop_words]
 
     lem = WordNetLemmatizer()
-    termlist = map(lem.lemmatize, termlist)
+    #termlist = map(lem.lemmatize, termlist)
 
     # only english
     #termlist = [word.lower() for word in words.words() if word in termlist]
@@ -227,14 +229,14 @@ def find_features(document, word_features):
 def main():
     print("Entry Point")
     
-    preprocessDataSet(datasetRootDir, trainSetDir, trainSetFixedDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
-    preprocessDataSet(datasetRootDir, testSetDir, testSetFixedDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
+    #preprocessDataSet(datasetRootDir, trainSetDir, trainSetFixedDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
+    #preprocessDataSet(datasetRootDir, testSetDir, testSetFixedDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
     
     # Load Corpora  IgnoreHeadingCorpusReader
     usenet_train = CategorizedPlaintextCorpusReader(trainSetRootDir + "-pre/", r'.*', cat_pattern=r'((\w+[.]?)*)/*', encoding="ISO-8859-1")
     usenet_test = CategorizedPlaintextCorpusReader(testSetRootDir + "-pre/", r'.*', cat_pattern=r'((\w+[.]?)*)/*', encoding="ISO-8859-1")
 
-    #print(usenet_train.words())
+    #print(usenet_train.words())                                                                                                                                                                            
     #print(usenet_train.categories())
     #print(usenet_train.fileids())
    
@@ -259,6 +261,7 @@ def main():
     #print(train_docs[1])
 
     all_words = []
+    #for w in usenet_train.words():
     for w in usenet_train.words():
         all_words.append(w)
 
@@ -286,10 +289,25 @@ def main():
 
     #classifier.show_most_informative_features(15)
 
+    #OUT
+    refsets = collections.defaultdict(set)
+    testsets = collections.defaultdict(set)
+ 
+    for i, (feats, label) in enumerate(testing_set):
+        refsets[label].add(i)
+        observed = classifier.classify(feats)
+        testsets[observed].add(i)
+ 
+    for cat in usenet_test.categories():
+        print (cat + ' precision:', precision(refsets[cat], testsets[cat]))
+        print (cat + ' recall:', recall(refsets[cat], testsets[cat]))
+
     # Try More
     MNB_classifier = SklearnClassifier(MultinomialNB())
     MNB_classifier.train(training_set)
     print("MultinomialNB accuracy rcent: ",nltk.classify.accuracy(MNB_classifier, testing_set)*100)
+
+
 
     BNB_classifier = SklearnClassifier(BernoulliNB())
     BNB_classifier.train(training_set)
