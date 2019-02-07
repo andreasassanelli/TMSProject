@@ -7,12 +7,14 @@
 #
 # Excercise dataset: http://qwone.com/~jason/20Newsgroups/
 
+
 #Load libraries
 import os
 import nltk
 import re
 from time import time
 import random
+import numpy as np
 from nltk.classify.scikitlearn import SklearnClassifier
 
 #import components
@@ -28,11 +30,14 @@ from sklearn import metrics
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.ensemble import (RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier)
 from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 
 # KERAS imports
-from keras.utils import to_categorical
-from keras import models
-from keras import layers
+from keras.models import Sequential
+from keras.layers import Dense, Activation, Dropout
+from keras.preprocessing import text, sequence
+from keras import utils
+import keras_metrics
 
 # Download/Refresh and load NLTK components (Stemmer, English stop-words)
 nltk.download("punkt")
@@ -204,6 +209,12 @@ def main():
 
     count_vect = CountVectorizer(min_df=min_freq, max_df=max_freq)
     tfidf_trans = TfidfTransformer()
+
+    # Our split 
+    train_posts = train_corpus
+    test_posts = test_corpus
+    train_tags = train_labels
+    test_tags = test_labels
 
     # build Document-Term matrix with TF-IDF weights
     X_train = count_vect.fit_transform(train_corpus)
