@@ -331,7 +331,23 @@ def main():
 
     NuSVC_classifier = SklearnClassifier(NuSVC())
     NuSVC_classifier.train(training_set)
-    print("NuSVC_classifier accuracy percent:", (nltk.classify.accuracy(NuSVC_classifier, testing_set))*100)                                
+    print("NuSVC_classifier accuracy percent:", (nltk.classify.accuracy(NuSVC_classifier, testing_set))*100)     
+    
+
+
+    # KERAS
+    # Building KERAS model
+    # Input - Layer
+    model.add(layers.Dense(50, activation = "relu", input_shape=(10000, )))
+    # Hidden - Layers
+    model.add(layers.Dropout(0.3, noise_shape=None, seed=None))
+    model.add(layers.Dense(50, activation = "relu")
+    model.add(layers.Dropout(0.2, noise_shape=None, seed=None))
+    model.add(layers.Dense(50, activation = "relu"))
+    # Output- Layer
+    model.add(layers.Dense(1, activation = "sigmoid"))
+    model.summary()
+
 
 if __name__ == '__main__':
     verbose = True

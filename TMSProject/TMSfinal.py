@@ -1,10 +1,11 @@
-#Text Mining and Search - Final Project
+# Text Mining And Search Final Assesment
 #
-#Students:
-# Nicoli,     Paolo       833311
-# Sassanelli, Andrea      123123123
+# Nicoli, Paolo         833311
+# Sassanelli, Andrea    000000
 #
-#Chosen excercise dataset: http://qwone.com/~jason/20Newsgroups/
+# Submission date 2019-02-08
+#
+# Excercise dataset: http://qwone.com/~jason/20Newsgroups/
 
 #Load libraries
 import os
@@ -18,50 +19,76 @@ from nltk.classify.scikitlearn import SklearnClassifier
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
+from matplotlib import pyplot as plt
+
+# Import sklearn components and Classifiers
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn import metrics
-from matplotlib import pyplot as plt
-# Additional
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.ensemble import (RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier)
 from sklearn.gaussian_process import GaussianProcessClassifier
 
-# 20newsgroup preprocessing functions
+# KERAS imports
+from keras.utils import to_categorical
+from keras import models
+from keras import layers
+
+# Download/Refresh and load NLTK components (Stemmer, English stop-words)
+nltk.download("punkt")
+pstemmer = PorterStemmer()
+
+nltk.download("stopwords")
+stop_words = set(stopwords.words('english'))
+
+# Global constants (dataset file locations, etc)
+DEBUG = False           #Toggle debug mode
+random.seed(1)          #Set to 1 for experimental consistency
+# Dataset on FS (source: http://)
+datasetRootDir = "c:/datasets/20news-bydate/"
+testSetRootDir = datasetRootDir + "20news-bydate-test/"
+trainSetRootDir = datasetRootDir + "20news-bydate-train/"
+
+# 20newsgroup dataset-specific preprocessing functions
 # source: scikit-learn/sklearn/datasets/twenty_newsgroups.py
+#
+# Removes headers, citation words and citation marks.
 _HEADER_RE = re.compile(r'^[A-Za-z0-9-]*:')
 _QUOTE_RE = re.compile(r'(writes in|writes:|wrote:|says:|said:'
                        r'|^In article|^Quoted from|^\||^>)')
 
+# Given text in "news" format, strip the headers, by removing everything
+# before the first blank line.
+# Additionally, drop lines leading with a header-like pattern, ie "Key-Text:"
+#
+# input: string representation of a whole raw usenet message
+# output: string of raw usenet message trimmed of all header lines
 def strip_newsgroup_header(text):
-    """
-    Given text in "news" format, strip the headers, by removing everything
-    before the first blank line.
-    Additionally, drop lines leading with a header-like pattern, ie "Key-Text:"
-    """
     _before, _blankline, after = text.partition('\n\n')
     after_clean = [line for line in after.split('\n')
                   if not _HEADER_RE.search(line)]
     return '\n'.join(after_clean)
 
+# Given text in "news" format, strip lines beginning with the quote
+# characters > or |, plus lines that often introduce a quoted section
+# (for example, because they contain the string 'writes:'.)
+#
+# input: string representation of a whole raw usenet message
+# output: string of raw usenet message trimmed of all characters preceding quotes
 def strip_newsgroup_quoting(text):
-    """
-    Given text in "news" format, strip lines beginning with the quote
-    characters > or |, plus lines that often introduce a quoted section
-    (for example, because they contain the string 'writes:'.)
-    """
     good_lines = [line for line in text.split('\n')
                   if not _QUOTE_RE.search(line)]
     return '\n'.join(good_lines)
 
-
+# Given text in "news" format, attempt to remove a signature block.
+# As a rough heuristic, we assume that signatures are set apart by either
+# a blank line or a line made of hyphens, and that it is the last such line
+# in the file (disregarding blank lines at the end).
+#
+# input: string representation of a whole raw usenet message
+# output: string of raw usenet message trimmed of some footer lines / signatures
 def strip_newsgroup_footer(text):
-    """
-    Given text in "news" format, attempt to remove a signature block.
-    As a rough heuristic, we assume that signatures are set apart by either
-    a blank line or a line made of hyphens, and that it is the last such line
-    in the file (disregarding blank lines at the end).
-    """
+
     lines = text.strip().split('\n')
     for line_num in range(len(lines) - 1, -1, -1):
         line = lines[line_num]
@@ -73,25 +100,10 @@ def strip_newsgroup_footer(text):
     else:
         return text
 
-
-# Define constants (file locations, etc)
-DEBUG = False
-random.seed(1)
-
-datasetRootDir = "c:/datasets/20news-bydate/"
-testSetRootDir = datasetRootDir + "20news-bydate-test/"
-trainSetRootDir = datasetRootDir + "20news-bydate-train/"
-
-nltk.download("punkt")
-pstemmer = PorterStemmer()
-
-nltk.download("stopwords")
-stop_words = set(stopwords.words('english'))
-
+# --- DATASET LOADING AND PREPROCESSING ROUTINES --- #
+# Pre-process raw message by applying tokenization, stopwords removal and stemming
 def preprocDocument(document):
-    """
-    Pre-process document by applying tokenization, stopwords removal and stemming
-    """
+
     # tokenize
     termlist = word_tokenize(document)
 
@@ -103,13 +115,11 @@ def preprocDocument(document):
 
     return termlist
 
+# Load dataset from specified location assuming each class has its own subfolder containing document files.
+# Removes header/quote/footer from each document according to boolean flags in <strip_flags> tuple.
+# Applies optional pre-processing function <func> to each document individually.
+# Returns list of [docID, class, data], one for each document in dataset
 def importDataSet(datasetLocation, strip_flags = (True, True, True), func = lambda x: x , verbose = False):
-    """
-    Load dataset from specified location assuming each class has its own subfolder containing document files.
-    Removes header/quote/footer from each document according to boolean flags in <strip_flags> tuple.
-    Applies optional pre-processing function <func> to each document individually.
-    Returns list of [docID, class, data], one for each document in dataset
-    """
 
     if verbose: print(datasetLocation)
 
@@ -165,16 +175,19 @@ def importDataSet(datasetLocation, strip_flags = (True, True, True), func = lamb
 
     return dataset
 
-#ENTRY POINT
+# --- ENTRY POINT --- #
 def main():
     print("Entry Point")
 
-    # dataset loading
+    # Load 20newsgroups-bydate dataset
+    # The dataset is split at source in a training and a test subsets
+    #
+    # Load and preprocess training subset data
     t0 = time()
     raw_train = importDataSet(trainSetRootDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
     print("training dataset loaded in %d seconds" % (time() -t0) )
     random.shuffle(raw_train)
-
+    # Load and preprocess testing subset data
     t1 = time()
     raw_test = importDataSet(testSetRootDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
     print("test dataset loaded in %d seconds" % (time() -t1) )
@@ -209,7 +222,7 @@ def main():
     print(metrics.classification_report(test_labels, y_predict, target_names = label_names))
     cmat = metrics.confusion_matrix(test_labels, y_predict)
 
-    #print(cmat)
+    print(cmat)
 
     #plt.imshow(cmat)
     #plt.yticks(range(len(label_names)), label_names)
@@ -298,6 +311,57 @@ def main():
     #plt.yticks(range(len(label_names)), label_names)
     #plt.show()
 
+    # KERAS
+
+    max_words = 1000
+    tokenize = text.Tokenizer(num_words=max_words, char_level=False)
+    tokenize.fit_on_texts(train_posts) # only fit on train
+
+    x_train = tokenize.texts_to_matrix(train_posts)
+    x_test = tokenize.texts_to_matrix(test_posts)
+
+    encoder = LabelEncoder()
+    encoder.fit(train_tags)
+
+    y_train = encoder.transform(train_tags)
+    y_test = encoder.transform(test_tags)
+
+    num_classes = np.max(y_train) + 1
+    y_train = utils.to_categorical(y_train, num_classes)
+    y_test = utils.to_categorical(y_test, num_classes)
+
+    batch_size = 32
+    epochs = 2
+
+    # Build the model
+    model = Sequential()
+    model.add(Dense(512, input_shape=(max_words,)))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes))
+    model.add(Activation('softmax'))
+
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='adam',
+                  metrics=['accuracy'])              
+
+    history = model.fit(x_train, y_train,
+                        batch_size=batch_size,
+                        epochs=epochs,
+                        verbose=1,
+                        validation_split=0.1)
+
+    score = model.evaluate(x_test, y_test,
+                       batch_size=batch_size, verbose=1)
+    print('Test accuracy:', score[1])
+
+    predict_classes = model.predict_classes(x_test, batch_size=1)
+    true_classes = np.argmax(y_test,1)
+    
+    print(metrics.classification_report(true_classes, predict_classes, target_names = label_names))
+    cmat = metrics.confusion_matrix(true_classes, predict_classes)
+
+    print(cmat)
 
 if __name__ == '__main__':
     verbose = True
