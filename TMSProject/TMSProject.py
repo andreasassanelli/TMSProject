@@ -105,7 +105,7 @@ def preprocDocument(document):
 
     return termlist
 
-def importDataSet(datasetLocation, strip_flags = (True, True, True), func = lambda x: x , verbose = False):
+def importDataSet(datasetLocation, strip_flags = (True, True, True), func = lambda x: x , class_list = None, verbose = False):
     """
     Load dataset from specified location assuming each class has its own subfolder containing document files.
     Removes header/quote/footer from each document according to boolean flags in <strip_flags> tuple.
@@ -120,6 +120,8 @@ def importDataSet(datasetLocation, strip_flags = (True, True, True), func = lamb
 
     # for each class in sample
     for groupName in os.listdir(datasetLocation):
+
+        if class_list is not None and groupName not in class_list: continue
 
         # Append the group name to the directory path
         corpusDir = datasetLocation + groupName
@@ -177,19 +179,20 @@ def sparsity(mat):
     return float(vals) / tot
 
 #ENTRY POINT
-def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Params' : { } } }  , raw_flag = False ):
+def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Params' : { } } }  ,
+         raw_matrix = False, coarse = False, class_list = None ):
     print("Entry Point")
 
     data_dict = dict()
 
     # dataset loading
     t0 = time()
-    raw_train = importDataSet(trainSetRootDir, strip_flags=flags, func=preprocDocument, verbose=verbose)
+    raw_train = importDataSet(trainSetRootDir, strip_flags=flags, func=preprocDocument, class_list=class_list ,verbose=verbose)
     print("training dataset loaded in %d seconds" % (time() -t0) )
     random.shuffle(raw_train)
 
     t1 = time()
-    raw_test = importDataSet(testSetRootDir, strip_flags=flags, func=preprocDocument, verbose=verbose)
+    raw_test = importDataSet(testSetRootDir, strip_flags=flags, func=preprocDocument, class_list=class_list, verbose=verbose)
     print("test dataset loaded in %d seconds" % (time() -t1) )
     random.shuffle(raw_test)
 
@@ -197,8 +200,13 @@ def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Para
     train_corpus = [ ' '.join(x[2]) for x in raw_train]
     test_corpus = [ ' '.join(x[2]) for x in raw_test]
 
-    train_labels = [x[1] for x in raw_train]
-    test_labels = [x[1] for x in raw_test]
+
+    if coarse:
+        test_labels = [x[1].split('.')[0] for x in raw_test]
+        train_labels = [x[1].split('.')[0] for x in raw_train]
+    else:
+        train_labels = [x[1] for x in raw_train]
+        test_labels = [x[1] for x in raw_test]
 
     label_names = list(set(test_labels))
 
@@ -206,7 +214,7 @@ def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Para
     count_vect = CountVectorizer(min_df=dflims[0], max_df=dflims[1])
     tfidf_trans = TfidfTransformer()
 
-    if raw_flag:
+    if raw_matrix:
         raw_X_train = raw_count_vect.fit_transform(train_corpus)
         rsp = round(sparsity(raw_X_train.todense().tolist()), 3)
         print("Raw sparsity: %s" % rsp)
@@ -277,14 +285,16 @@ if __name__ == '__main__':
                 fingerprint = ''.join(map(lambda x: str(int(x)),stripflg))
 
 
-                min_freq = 20
+                min_freq = 10
                 max_freq = 0.75
 
                 fingerprint += "_%s_%s" % (min_freq, max_freq)
 
+                fingerprint += 'c'
+
                 print(fingerprint)
 
-                output = main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=schedule)
+                output = main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=schedule, coarse=True)
 
                 with open('redump_%s.json' % fingerprint, 'w' ) as fout:
                     json.dump(output, fout)
