@@ -296,7 +296,7 @@ if __name__ == '__main__':
 
                 output = main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=schedule, coarse=True)
 
-                with open('redump_%s.json' % fingerprint, 'w' ) as fout:
+                with open('../reports/redump_%s.json' % fingerprint, 'w' ) as fout:
                     json.dump(output, fout)
 
                 for k in output[1]:
