@@ -19,6 +19,8 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import SGDClassifier
+
 from sklearn import metrics
 from matplotlib import pyplot as plt
 
@@ -160,6 +162,14 @@ def importDataSet(datasetLocation, strip_flags = (True, True, True), func = lamb
 
     return dataset
 
+def accmat(mat):
+    return mat.trace()/float(mat.sum())
+
+def sparsity(mat):
+    tot = len(mat) * len(mat[0])
+    vals = sum([sum([x == 0 for x in r]) for r in mat])
+    return float(vals) / tot
+
 #ENTRY POINT
 def main():
     print("Entry Point")
@@ -191,30 +201,39 @@ def main():
     X_train = count_vect.fit_transform(train_corpus)
     X_train_tfidf = tfidf_trans.fit_transform(X_train)
 
-    # Classification
-    clf = MultinomialNB().fit(X_train_tfidf, train_labels)
-
     X_test = count_vect.transform(test_corpus)
     X_test_tfidf = tfidf_trans.transform(X_test)
 
-    y_predict = clf.predict(X_test_tfidf)
+
+    # Classification
+    baseline_clf = MultinomialNB().fit(X_train_tfidf, train_labels)
+    baseline_y_pred = baseline_clf.predict(X_test_tfidf)
+
+    svm_clf = SGDClassifier(loss='hinge', penalty='l2', alpha = 1e-3,
+                  random_state = 42, max_iter = 10, tol = None).fit(X_train_tfidf, train_labels)
+    svm_y_pred = svm_clf.predict(X_test_tfidf)
 
     # Evaluation
-    print(metrics.classification_report(test_labels, y_predict, target_names = label_names))
-    cmat = metrics.confusion_matrix(test_labels, y_predict)
+    print(metrics.classification_report(test_labels, baseline_y_pred, target_names = label_names))
+    print(metrics.classification_report(test_labels, svm_y_pred, target_names=label_names))
+    baseline_cmat = metrics.confusion_matrix(test_labels, baseline_y_pred)
+    svm_cmat = metrics.confusion_matrix(test_labels, svm_y_pred)
 
-    print(cmat)
+    print("%s,%s" % (accmat(baseline_cmat),accmat(svm_cmat)))
 
-    plt.imshow(cmat)
-    plt.yticks(range(len(label_names)), label_names)
-    plt.show()
+    #print(baseline_cmat)
+    #print("acc: %s" % (baseline_cmat.trace() / float(baseline_cmat.sum())))
+
+    #plt.imshow(baseline_cmat)
+    #plt.yticks(range(len(label_names)), label_names)
+    #plt.show()
 
 
 if __name__ == '__main__':
     verbose = True
-    stripflg = (True, True, True)
+    stripflg = (False, True, False)
 
-    min_freq = 0.05
+    min_freq = 10
     max_freq = 0.80
 
     main()
