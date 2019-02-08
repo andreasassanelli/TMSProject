@@ -277,17 +277,17 @@ if __name__ == '__main__':
                 fingerprint = ''.join(map(lambda x: str(int(x)),stripflg))
 
 
-    min_freq = 20
-    max_freq = 0.75
+                min_freq = 20
+                max_freq = 0.75
 
-    fingerprint += "_%s_%s" % (min_freq, max_freq)
+                fingerprint += "_%s_%s" % (min_freq, max_freq)
 
-    print(fingerprint)
+                print(fingerprint)
 
-    output = main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=schedule)
+                output = main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=schedule)
 
-    with open('redump_%s.json' % fingerprint, 'w' ) as fout:
-        json.dump(output, fout)
+                with open('redump_%s.json' % fingerprint, 'w' ) as fout:
+                    json.dump(output, fout)
 
-    for k in output[1]:
-        print("%s:\t%s\t%s" % (k, round(output[1][k]['Acc'],3), output[1][k]["Train_time"]))
+                for k in output[1]:
+                    print("%s:\t%s\t%s" % (k, round(output[1][k]['Acc'],3), output[1][k]["Train_time"]))
