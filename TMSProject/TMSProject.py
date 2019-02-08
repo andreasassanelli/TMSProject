@@ -254,44 +254,40 @@ if __name__ == '__main__':
         "NaiveBayes" : {
             "Constr" : MultinomialNB,
             "Params" : {}
-        #},
-        #"SGDClassifier": {
-        #    "Constr" : SGDClassifier,
-        #    "Params" : {'random_state' : 1}
-        #},
-        #"KNN" : {
-        #    "Constr": KNeighborsClassifier,
-        #    "Params": {}
-        #},
-        #"MLP" : {
-        #    "Constr": MLPClassifier,
-        #    "Params": {'random_state' : 1}
+        },
+        "SGDClassifier": {
+            "Constr" : SGDClassifier,
+            "Params" : {'random_state' : 1}
+        },
+        "KNN" : {
+            "Constr": KNeighborsClassifier,
+            "Params": {}
+        },
+        "MLP" : {
+            "Constr": MLPClassifier,
+            "Params": {'random_state' : 1}
         }
     }
 
-
     for head in [True,False]:
-        for quote in [True, False]:
-            for sign in [True, False]:
+        for quote in [True,False]:
+            for sign in [True,False]:
+                stripflg = (head, quote, sign)
 
-                    for mf in [1,10,20]:
-                        for Mf in [0.75,0.8,0.9]:
+                fingerprint = ''.join(map(lambda x: str(int(x)),stripflg))
 
-                            stripflg = (head, quote, sign)
 
-                            fingerprint = ''.join(map(lambda x: str(int(x)),stripflg))
+    min_freq = 20
+    max_freq = 0.75
 
-                            fingerprint += "_%s_%s" % (mf,Mf)
+    fingerprint += "_%s_%s" % (min_freq, max_freq)
 
-                            min_freq = mf
-                            max_freq = Mf
+    print(fingerprint)
 
-                            print(fingerprint)
+    output = main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=schedule)
 
-                            output = main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=schedule)
+    with open('redump_%s.json' % fingerprint, 'w' ) as fout:
+        json.dump(output, fout)
 
-                            with open('redump_%s.json' % fingerprint, 'w' ) as fout:
-                                json.dump(output, fout)
-
-                            for k in output[1]:
-                                print("%s:\t%s\t%s" % (k, round(output[1][k]['Acc'],3), output[1][k]["Train_time"]))
+    for k in output[1]:
+        print("%s:\t%s\t%s" % (k, round(output[1][k]['Acc'],3), output[1][k]["Train_time"]))
