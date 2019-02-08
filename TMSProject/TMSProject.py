@@ -25,6 +25,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 
 from sklearn import metrics
+import numpy as np
 from matplotlib import pyplot as plt
 
 # 20newsgroup preprocessing functions
@@ -166,7 +167,8 @@ def importDataSet(datasetLocation, strip_flags = (True, True, True), func = lamb
     return dataset
 
 def accmat(mat):
-    return mat.trace()/float(mat.sum())
+    m = np.matrix(mat)
+    return m.trace()/float(m.sum())
 
 def sparsity(mat):
     tot = len(mat) * len(mat[0])
@@ -203,10 +205,10 @@ def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Para
 
     # build Document-Term matrix with TF-IDF weights
     raw_X_train = raw_count_vect.fit_transform(train_corpus)
-    print("Raw sparsity: %s" % round(accmat(raw_X_train.todense().tolist()), 3))
+    print("Raw sparsity: %s" % round(sparsity(raw_X_train.todense().tolist()), 3))
 
     X_train = count_vect.fit_transform(train_corpus)
-    print("DFlim sparsity: %s" % round(accmat(X_train.todense().tolist()), 3))
+    print("DFlim sparsity: %s" % round(sparsity(X_train.todense().tolist()), 3))
 
     X_train_tfidf = tfidf_trans.fit_transform(X_train)
 
@@ -228,7 +230,7 @@ def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Para
         res_dict[cls]['Train_time'] = round(time()-t0, 2)
 
         t0 = time()
-        y_pred = baseline_clf.predict(X_test_tfidf)
+        y_pred = cls_class.predict(X_test_tfidf)
         res_dict[cls]['Pred_time'] = round(time()-t0, 2)
 
         res_dict[cls]['CMat'] = metrics.confusion_matrix(test_labels, y_pred)
@@ -255,7 +257,7 @@ def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Para
 
 
 if __name__ == '__main__':
-    verbose = True
+    verbose = False
     stripflg = (False, True, False)
 
     min_freq = 10
@@ -264,20 +266,23 @@ if __name__ == '__main__':
     schedule = {
         "NaiveBayes" : {
             "Constr" : MultinomialNB,
-            "Params" : {random_state : 1}
+            "Params" : {}
         },
         "SGDClassifier": {
             "Constr" : SGDClassifier,
-            "Params" : {random_state : 1}
+            "Params" : {'random_state' : 1}
         },
         "KNN" : {
             "Constr": KNeighborsClassifier,
-            "Params": {random_state : 1}
+            "Params": {}
         },
         "MLP" : {
             "Constr": MLPClassifier,
-            "Params": {random_state : 1}
+            "Params": {'random_state' : 1}
         }
-}
+    }
 
-    main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=chedule)
+    output = main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=schedule)
+
+    for k in output:
+        print("%s:\t%s\t%s" % (k, round(output[k]['Acc'],3), output[k]["Train_time"]))
