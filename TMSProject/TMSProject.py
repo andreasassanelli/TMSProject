@@ -12,6 +12,7 @@ import nltk
 import re
 from time import time
 import random
+import json
 
 #import components
 from nltk.corpus import stopwords
@@ -168,7 +169,7 @@ def importDataSet(datasetLocation, strip_flags = (True, True, True), func = lamb
 
 def accmat(mat):
     m = np.matrix(mat)
-    return m.trace()/float(m.sum())
+    return float(m.trace())/float(m.sum())
 
 def sparsity(mat):
     tot = len(mat) * len(mat[0])
@@ -176,8 +177,10 @@ def sparsity(mat):
     return float(vals) / tot
 
 #ENTRY POINT
-def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Params' : { } } }   ):
+def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Params' : { } } }  , raw_flag = False ):
     print("Entry Point")
+
+    data_dict = dict()
 
     # dataset loading
     t0 = time()
@@ -203,18 +206,23 @@ def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Para
     count_vect = CountVectorizer(min_df=dflims[0], max_df=dflims[1])
     tfidf_trans = TfidfTransformer()
 
-    # build Document-Term matrix with TF-IDF weights
-    raw_X_train = raw_count_vect.fit_transform(train_corpus)
-    print("Raw sparsity: %s" % round(sparsity(raw_X_train.todense().tolist()), 3))
+    if raw_flag:
+        raw_X_train = raw_count_vect.fit_transform(train_corpus)
+        rsp = round(sparsity(raw_X_train.todense().tolist()), 3)
+        print("Raw sparsity: %s" % rsp)
 
+    # build Document-Term matrix with TF-IDF weights
     X_train = count_vect.fit_transform(train_corpus)
-    print("DFlim sparsity: %s" % round(sparsity(X_train.todense().tolist()), 3))
+    sp = round(sparsity(X_train.todense().tolist()), 3)
+    print("DFlim sparsity: %s" % sp)
+
+    data_dict['Sparsity'] = sp
+    data_dict['Shape'] = X_train.shape
 
     X_train_tfidf = tfidf_trans.fit_transform(X_train)
 
     X_test = count_vect.transform(test_corpus)
     X_test_tfidf = tfidf_trans.transform(X_test)
-
 
     # Classification
     res_dict = dict()
@@ -233,56 +241,57 @@ def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Para
         y_pred = cls_class.predict(X_test_tfidf)
         res_dict[cls]['Pred_time'] = round(time()-t0, 2)
 
-        res_dict[cls]['CMat'] = metrics.confusion_matrix(test_labels, y_pred)
+        res_dict[cls]['CMat'] = metrics.confusion_matrix(test_labels, y_pred).tolist()
         res_dict[cls]['Acc'] = accmat(res_dict[cls]['CMat'])
 
-    return res_dict
-
-
-
-    #baseline_clf = MultinomialNB().fit(X_train_tfidf, train_labels)
-    #baseline_y_pred = baseline_clf.predict(X_test_tfidf)
-
-    #svm_clf = SGDClassifier(loss='hinge', penalty='l2', alpha = 1e-3,
-    #              random_state = 42, max_iter = 10, tol = None).fit(X_train_tfidf, train_labels)
-    #svm_y_pred = svm_clf.predict(X_test_tfidf)
-
-    # Evaluation
-    #print(metrics.classification_report(test_labels, baseline_y_pred, target_names = label_names))
-    #print(metrics.classification_report(test_labels, svm_y_pred, target_names=label_names))
-    #baseline_cmat = metrics.confusion_matrix(test_labels, baseline_y_pred)
-    #svm_cmat = metrics.confusion_matrix(test_labels, svm_y_pred)
-
-    #print("%s,%s" % (accmat(baseline_cmat),accmat(svm_cmat)))
+    return (data_dict,res_dict)
 
 
 if __name__ == '__main__':
     verbose = False
-    stripflg = (False, True, False)
-
-    min_freq = 10
-    max_freq = 0.80
 
     schedule = {
         "NaiveBayes" : {
             "Constr" : MultinomialNB,
             "Params" : {}
-        },
-        "SGDClassifier": {
-            "Constr" : SGDClassifier,
-            "Params" : {'random_state' : 1}
-        },
-        "KNN" : {
-            "Constr": KNeighborsClassifier,
-            "Params": {}
-        },
-        "MLP" : {
-            "Constr": MLPClassifier,
-            "Params": {'random_state' : 1}
+        #},
+        #"SGDClassifier": {
+        #    "Constr" : SGDClassifier,
+        #    "Params" : {'random_state' : 1}
+        #},
+        #"KNN" : {
+        #    "Constr": KNeighborsClassifier,
+        #    "Params": {}
+        #},
+        #"MLP" : {
+        #    "Constr": MLPClassifier,
+        #    "Params": {'random_state' : 1}
         }
     }
 
-    output = main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=schedule)
 
-    for k in output:
-        print("%s:\t%s\t%s" % (k, round(output[k]['Acc'],3), output[k]["Train_time"]))
+    for head in [True,False]:
+        for quote in [True, False]:
+            for sign in [True, False]:
+
+                    for mf in [1,10,20]:
+                        for Mf in [0.75,0.8,0.9]:
+
+                            stripflg = (head, quote, sign)
+
+                            fingerprint = ''.join(map(lambda x: str(int(x)),stripflg))
+
+                            fingerprint += "_%s_%s" % (mf,Mf)
+
+                            min_freq = mf
+                            max_freq = Mf
+
+                            print(fingerprint)
+
+                            output = main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=schedule)
+
+                            with open('redump_%s.json' % fingerprint, 'w' ) as fout:
+                                json.dump(output, fout)
+
+                            for k in output[1]:
+                                print("%s:\t%s\t%s" % (k, round(output[1][k]['Acc'],3), output[1][k]["Train_time"]))
