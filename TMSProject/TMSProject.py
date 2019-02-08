@@ -18,8 +18,11 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import SGDClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 from sklearn import metrics
 from matplotlib import pyplot as plt
@@ -171,17 +174,17 @@ def sparsity(mat):
     return float(vals) / tot
 
 #ENTRY POINT
-def main():
+def main(dflims, flags, cls_dict = { 'naive' : {'Constr' : MultinomialNB , 'Params' : { } } }   ):
     print("Entry Point")
 
     # dataset loading
     t0 = time()
-    raw_train = importDataSet(trainSetRootDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
+    raw_train = importDataSet(trainSetRootDir, strip_flags=flags, func=preprocDocument, verbose=verbose)
     print("training dataset loaded in %d seconds" % (time() -t0) )
     random.shuffle(raw_train)
 
     t1 = time()
-    raw_test = importDataSet(testSetRootDir, strip_flags=stripflg, func=preprocDocument, verbose=verbose)
+    raw_test = importDataSet(testSetRootDir, strip_flags=flags, func=preprocDocument, verbose=verbose)
     print("test dataset loaded in %d seconds" % (time() -t1) )
     random.shuffle(raw_test)
 
@@ -194,11 +197,17 @@ def main():
 
     label_names = list(set(test_labels))
 
-    count_vect = CountVectorizer(min_df=min_freq, max_df=max_freq)
+    raw_count_vect = CountVectorizer()
+    count_vect = CountVectorizer(min_df=dflims[0], max_df=dflims[1])
     tfidf_trans = TfidfTransformer()
 
     # build Document-Term matrix with TF-IDF weights
+    raw_X_train = raw_count_vect.fit_transform(train_corpus)
+    print("Raw sparsity: %s" % round(accmat(raw_X_train.todense().tolist()), 3))
+
     X_train = count_vect.fit_transform(train_corpus)
+    print("DFlim sparsity: %s" % round(accmat(X_train.todense().tolist()), 3))
+
     X_train_tfidf = tfidf_trans.fit_transform(X_train)
 
     X_test = count_vect.transform(test_corpus)
@@ -206,27 +215,43 @@ def main():
 
 
     # Classification
-    baseline_clf = MultinomialNB().fit(X_train_tfidf, train_labels)
-    baseline_y_pred = baseline_clf.predict(X_test_tfidf)
+    res_dict = dict()
+    for cls in cls_dict.keys():
 
-    svm_clf = SGDClassifier(loss='hinge', penalty='l2', alpha = 1e-3,
-                  random_state = 42, max_iter = 10, tol = None).fit(X_train_tfidf, train_labels)
-    svm_y_pred = svm_clf.predict(X_test_tfidf)
+        random.seed(1)
+
+        res_dict[cls] = dict()
+        cls_class = cls_dict[cls]['Constr']( **(cls_dict[cls]['Params']))
+
+        t0 = time()
+        cls_class.fit(X_train_tfidf, train_labels)
+        res_dict[cls]['Train_time'] = round(time()-t0, 2)
+
+        t0 = time()
+        y_pred = baseline_clf.predict(X_test_tfidf)
+        res_dict[cls]['Pred_time'] = round(time()-t0, 2)
+
+        res_dict[cls]['CMat'] = metrics.confusion_matrix(test_labels, y_pred)
+        res_dict[cls]['Acc'] = accmat(res_dict[cls]['CMat'])
+
+    return res_dict
+
+
+
+    #baseline_clf = MultinomialNB().fit(X_train_tfidf, train_labels)
+    #baseline_y_pred = baseline_clf.predict(X_test_tfidf)
+
+    #svm_clf = SGDClassifier(loss='hinge', penalty='l2', alpha = 1e-3,
+    #              random_state = 42, max_iter = 10, tol = None).fit(X_train_tfidf, train_labels)
+    #svm_y_pred = svm_clf.predict(X_test_tfidf)
 
     # Evaluation
-    print(metrics.classification_report(test_labels, baseline_y_pred, target_names = label_names))
-    print(metrics.classification_report(test_labels, svm_y_pred, target_names=label_names))
-    baseline_cmat = metrics.confusion_matrix(test_labels, baseline_y_pred)
-    svm_cmat = metrics.confusion_matrix(test_labels, svm_y_pred)
+    #print(metrics.classification_report(test_labels, baseline_y_pred, target_names = label_names))
+    #print(metrics.classification_report(test_labels, svm_y_pred, target_names=label_names))
+    #baseline_cmat = metrics.confusion_matrix(test_labels, baseline_y_pred)
+    #svm_cmat = metrics.confusion_matrix(test_labels, svm_y_pred)
 
-    print("%s,%s" % (accmat(baseline_cmat),accmat(svm_cmat)))
-
-    #print(baseline_cmat)
-    #print("acc: %s" % (baseline_cmat.trace() / float(baseline_cmat.sum())))
-
-    #plt.imshow(baseline_cmat)
-    #plt.yticks(range(len(label_names)), label_names)
-    #plt.show()
+    #print("%s,%s" % (accmat(baseline_cmat),accmat(svm_cmat)))
 
 
 if __name__ == '__main__':
@@ -236,4 +261,23 @@ if __name__ == '__main__':
     min_freq = 10
     max_freq = 0.80
 
-    main()
+    schedule = {
+        "NaiveBayes" : {
+            "Constr" : MultinomialNB,
+            "Params" : {random_state : 1}
+        },
+        "SGDClassifier": {
+            "Constr" : SGDClassifier,
+            "Params" : {random_state : 1}
+        },
+        "KNN" : {
+            "Constr": KNeighborsClassifier,
+            "Params": {random_state : 1}
+        },
+        "MLP" : {
+            "Constr": MLPClassifier,
+            "Params": {random_state : 1}
+        }
+}
+
+    main(dflims=(min_freq,max_freq), flags=stripflg, cls_dict=chedule)
