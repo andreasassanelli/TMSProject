@@ -1,9 +1,11 @@
 import glob
 import json
 
-reslist = glob.glob("redump_*_20_0.75.json")
+reslist = glob.glob("../reports/redump_*10_0.75L.json")
 
-scribe = open('results_models.csv','w')
+print(reslist[0])
+
+scribe = open('results_4class.csv','w')
 
 scribe.write("head,quote,sign,spars,model,acc,trtime\n")
 
@@ -12,9 +14,10 @@ for f in reslist:
     with open(f,'r') as fin:
         res = json.load(fin)
 
-    #pieces = f[11:-5].split('_')
     pieces = f[:-5].split('_')
-    assert pieces[0]== 'redump'
+    #pieces = f[:-5].split('_')
+    print(pieces[0])
+    assert pieces[0]== '../reports\\redump'
     pieces.pop(0)
 
     head = bool(int(pieces[0][0]))
